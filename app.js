@@ -1,4 +1,5 @@
 const STORAGE_KEY = "dongrun-management-records-v1";
+const ACCOUNT_STORAGE_KEY = "dongrun-management-accounts-v1";
 
 const modules = [
   { id: "dashboard", label: "工作台", mark: "总" },
@@ -128,7 +129,25 @@ const state = {
   records: loadRecords(),
   ledgerQuery: "",
   editingId: "",
+  accounts: loadAccounts(),
 };
+
+function loadAccounts() {
+  const defaults = [
+    { id: "admin-1", name: "系统管理员", department: "综合管理部", role: "系统管理员", status: "启用" },
+    { id: "leader-1", name: "领导账号", department: "综合管理部", role: "领导账号", status: "启用" },
+  ];
+  try {
+    const saved = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY));
+    return Array.isArray(saved) ? saved : defaults;
+  } catch {
+    return defaults;
+  }
+}
+
+function saveAccounts() {
+  localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(state.accounts));
+}
 
 const dom = {
   mainNav: document.querySelector("#mainNav"),
@@ -146,6 +165,10 @@ const dom = {
   recordForm: document.querySelector("#recordForm"),
   globalSearchButton: document.querySelector("#globalSearchButton"),
   searchModal: document.querySelector("#searchModal"),
+  accountModal: document.querySelector("#accountModal"),
+  accountForm: document.querySelector("#accountForm"),
+  userMenuButton: document.querySelector("#userMenuButton"),
+  userMenu: document.querySelector("#userMenu"),
   globalSearchInput: document.querySelector("#globalSearchInput"),
   globalSearchResults: document.querySelector("#globalSearchResults"),
   quickAddButton: document.querySelector("#quickAddButton"),
@@ -499,6 +522,14 @@ function renderLedger() {
 }
 
 function renderSettings() {
+  const accountRows = state.accounts.map((account) => `
+    <tr>
+      <td><strong>${escapeHtml(account.name)}</strong></td>
+      <td>${escapeHtml(account.department)}</td>
+      <td><span class="status-chip">${escapeHtml(account.role)}</span></td>
+      <td>${escapeHtml(account.status)}</td>
+      <td><div class="row-actions"><button data-edit-account="${account.id}">编辑</button></div></td>
+    </tr>`).join("");
   dom.appContent.innerHTML = `
     <section class="settings-page">
       <div class="module-hero">
@@ -518,8 +549,8 @@ function renderSettings() {
         </article>
         <article class="settings-card">
           <h2>账号与权限</h2>
-          <p>GitHub Pages 纯前端版暂不支持正式账号、角色权限和统一登录。</p>
-          <button class="secondary-button" data-info="正式权限需要连接后台服务。">了解限制</button>
+          <p>可先编辑演示账号的部门、角色和状态；正式多人登录将在安装后台后生效。</p>
+          <button class="secondary-button" data-add-account>新增演示账号</button>
         </article>
         <article class="settings-card">
           <h2>附件与审批</h2>
@@ -527,7 +558,51 @@ function renderSettings() {
           <button class="secondary-button" data-info="接入后台后可继续开发附件、审批、日志和自动备份。">后续升级</button>
         </article>
       </div>
+      <div class="data-panel account-panel">
+        <div class="data-filters"><strong>账号与角色</strong><span class="record-count">共 ${state.accounts.length} 个账号</span></div>
+        <div class="ledger-table-wrap"><table class="ledger-table">
+          <thead><tr><th>姓名</th><th>部门</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>${accountRows}</tbody>
+        </table></div>
+      </div>
     </section>`;
+}
+
+function openAccountModal(accountId = "") {
+  const account = state.accounts.find((item) => item.id === accountId);
+  document.querySelector("#accountModalTitle").textContent = account ? "编辑账号" : "新增账号";
+  document.querySelector("#accountId").value = account?.id || "";
+  document.querySelector("#accountName").value = account?.name || "";
+  document.querySelector("#accountDepartment").innerHTML = departments
+    .map((department) => `<option ${department === account?.department ? "selected" : ""}>${department}</option>`).join("");
+  document.querySelector("#accountRole").value = account?.role || "台账填报员";
+  document.querySelector("#accountStatus").value = account?.status || "启用";
+  dom.accountModal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeAccountModal() {
+  dom.accountModal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+function saveAccount(event) {
+  event.preventDefault();
+  const id = document.querySelector("#accountId").value || `account-${Date.now()}`;
+  const account = {
+    id,
+    name: document.querySelector("#accountName").value.trim(),
+    department: document.querySelector("#accountDepartment").value,
+    role: document.querySelector("#accountRole").value,
+    status: document.querySelector("#accountStatus").value,
+  };
+  const index = state.accounts.findIndex((item) => item.id === id);
+  if (index >= 0) state.accounts[index] = account;
+  else state.accounts.push(account);
+  saveAccounts();
+  closeAccountModal();
+  renderSettings();
+  showToast(index >= 0 ? "账号角色已更新" : "演示账号已新增");
 }
 
 function openRecordModal(recordId = "") {
@@ -776,6 +851,9 @@ function bindEvents() {
     if (deleteButton) deleteRecord(deleteButton.dataset.delete);
     const infoButton = event.target.closest("[data-info]");
     if (infoButton) showToast(infoButton.dataset.info);
+    const accountEdit = event.target.closest("[data-edit-account]");
+    if (accountEdit) openAccountModal(accountEdit.dataset.editAccount);
+    if (event.target.closest("[data-add-account]")) openAccountModal();
 
     if (event.target.closest("[data-reset]")) {
       if (window.confirm("确定恢复演示数据吗？当前浏览器中自行录入的记录会被清除。")) {
@@ -793,24 +871,43 @@ function bindEvents() {
   document.querySelector("[data-close-drawer]").addEventListener("click", () => dom.noticeDrawer.classList.remove("open"));
   dom.quickAddButton.addEventListener("click", () => openRecordModal());
   dom.globalSearchButton.addEventListener("click", openGlobalSearch);
+  dom.userMenuButton.addEventListener("click", () => {
+    const opening = dom.userMenu.hidden;
+    dom.userMenu.hidden = !opening;
+    dom.userMenuButton.setAttribute("aria-expanded", String(opening));
+  });
+  dom.userMenu.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-user-action]")?.dataset.userAction;
+    if (!action) return;
+    dom.userMenu.hidden = true;
+    if (action === "accounts") navigate("settings");
+    if (action === "dashboard") navigate("dashboard");
+    if (action === "logs") showToast("操作日志将在正式后台安装后启用");
+  });
   dom.globalSearchInput.addEventListener("input", (event) => renderGlobalSearch(event.target.value));
   dom.globalSearchResults.addEventListener("click", (event) => {
     const result = event.target.closest("[data-search-result]");
     if (result) openSearchResult(result.dataset.searchResult);
   });
   dom.recordForm.addEventListener("submit", saveRecord);
+  dom.accountForm.addEventListener("submit", saveAccount);
   document.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", closeRecordModal));
   document.querySelectorAll("[data-close-search]").forEach((button) => button.addEventListener("click", closeGlobalSearch));
+  document.querySelectorAll("[data-close-account]").forEach((button) => button.addEventListener("click", closeAccountModal));
   dom.recordModal.addEventListener("click", (event) => {
     if (event.target === dom.recordModal) closeRecordModal();
   });
   dom.searchModal.addEventListener("click", (event) => {
     if (event.target === dom.searchModal) closeGlobalSearch();
   });
+  dom.accountModal.addEventListener("click", (event) => {
+    if (event.target === dom.accountModal) closeAccountModal();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeRecordModal();
       closeGlobalSearch();
+      closeAccountModal();
       dom.noticeDrawer.classList.remove("open");
       closeMobileNav();
     }

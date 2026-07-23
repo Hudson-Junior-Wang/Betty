@@ -325,6 +325,10 @@ textarea:focus-visible {
 }
 
 .user-block {
+  position: relative;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -332,6 +336,32 @@ textarea:focus-visible {
   padding-left: 14px;
   border-left: 1px solid var(--line);
 }
+
+.user-block > b { margin-left: 5px; color: var(--muted); font-size: 11px; }
+.user-menu {
+  position: absolute;
+  z-index: 50;
+  top: 66px;
+  right: 112px;
+  width: 156px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 14px 30px rgba(18, 49, 38, 0.16);
+}
+.user-menu[hidden] { display: none; }
+.user-menu button {
+  width: 100%;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--forest-900);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.user-menu button:hover { background: #edf5ef; }
 
 .user-block > span {
   width: 36px;
@@ -991,6 +1021,7 @@ td.urgent { color: var(--orange-700); }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
+.account-panel { margin-top: 18px; }
 
 .settings-card {
   min-height: 170px;

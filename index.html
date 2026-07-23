@@ -60,9 +60,15 @@
             <button class="icon-button notification" id="notificationButton" aria-label="消息提醒">
               <span class="line-icon">♢</span><b>3</b>
             </button>
-            <div class="user-block">
+            <button class="user-block" id="userMenuButton" type="button" aria-expanded="false">
               <span>管</span>
               <div><strong>系统管理员</strong><small>内部试用账户</small></div>
+              <b>⌄</b>
+            </button>
+            <div class="user-menu" id="userMenu" hidden>
+              <button type="button" data-user-action="accounts">账号与角色</button>
+              <button type="button" data-user-action="logs">操作日志</button>
+              <button type="button" data-user-action="dashboard">返回工作台</button>
             </div>
             <button class="primary-button" id="quickAddButton">
               <span>＋</span>快速新增
@@ -152,6 +158,35 @@
           </label>
           <div id="globalSearchResults" class="global-search-results"></div>
         </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="accountModal" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+        <div class="modal-heading">
+          <div><p>账号与权限</p><h2 id="accountModalTitle">编辑账号</h2></div>
+          <button class="icon-button" data-close-account aria-label="关闭">×</button>
+        </div>
+        <form id="accountForm">
+          <input type="hidden" id="accountId" />
+          <div class="form-grid">
+            <label class="form-field"><span>姓名<b>*</b></span><input id="accountName" required /></label>
+            <label class="form-field"><span>所属部门</span><select id="accountDepartment"></select></label>
+            <label class="form-field"><span>账号角色</span>
+              <select id="accountRole">
+                <option>系统管理员</option><option>领导账号</option><option>部门负责人</option>
+                <option>台账填报员</option><option>只读人员</option>
+              </select>
+            </label>
+            <label class="form-field"><span>账号状态</span>
+              <select id="accountStatus"><option>启用</option><option>停用</option></select>
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="secondary-button" data-close-account>取消</button>
+            <button type="submit" class="primary-button">保存账号</button>
+          </div>
+        </form>
       </section>
     </div>
 
